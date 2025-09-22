@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Home — QC Dadap</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <button class="menu-toggle small.muted" onclick="document.querySelector('.sidebar').classList.toggle('show')">☰ Menu</button>
+
+  <aside class="sidebar">
+    <div class="logo">QC Dadap</div>
+    <nav>
+      <a class="active" href="index.html">🏠 Home</a>
+      <a href="fitup.html">🔧 Fitup</a>
+      <a href="visual-welding.html">🛠️ Visual Welding</a>
+      <a href="ndt.html">📡 Non Destructive Test</a>
+      <a href="input-data.html">📊 Input Data</a>
+      <a href="projects.html">📁 Projects</a>
+      <a href="drawing.html">📐 Drawing</a>
+      <a href="account.html">⚙️ Akun</a>
+      <a href="user-stats.html">👥 Status User</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="container">
+      <section class="hero card">
+        <h1>Selamat datang di QC Dadap</h1>
+        <p class="lead">Template modern, responsif, dan siap dipakai untuk kebutuhan dokumentasi QC Welding.</p>
+        <div style="display:flex;gap:12px">
+          <a class="btn" href="fitup.html">Fitup</a>
+          <a class="btn" href="input-data.html">Input Data</a>
+        </div>
+      </section>
+      <section class="card">
+        <h2>📊 Ringkasan QC</h2>
+        <div id="summaryContainer" class="grid"></div>
+        <canvas id="chartQC" style="margin-top:20px;max-width:100%"></canvas>
+      </section>
+    </div>
+  </main>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="script-supabase.js"></script>
+  <script src="auth.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      tampilkanRingkasan();
+    });
+  </script>
+</body>
+</html>

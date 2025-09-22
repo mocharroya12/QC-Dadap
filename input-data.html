@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Input Data — QC Dadap</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('show')">☰ Menu</button>
+
+  <aside class="sidebar">
+    <div class="logo">QC Dadap</div>
+    <nav>
+      <a href="index.html">🏠 Home</a>
+      <a href="fitup.html">🔧 Fitup</a>
+      <a href="visual-welding.html">🛠️ Visual Welding</a>
+      <a href="ndt.html">📡 Non Destructive Test</a>
+      <a class="active" href="input-data.html">📊 Input Data</a>
+      <a href="projects.html">📁 Projects</a>
+      <a href="drawing.html">📐 Drawing</a>
+      <a href="account.html">⚙️ Akun</a>
+      <a href="user-stats.html">👥 Status User</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+  <div class="container">
+    <section class="card">
+      <h1>📊 Input Data QC</h1>
+      <form id="formInputData" class="form-grid">
+        
+        <!-- Kolom kiri -->
+        <div>
+          <label>Nama Project</label>
+          <select id="projectName"></select>
+          
+          <label>Drawing Number</label>
+          <select id="drawingNumber"></select>
+          
+          <label>Nomor Joint / Spool</label>
+          <div id="jointWrapper"></div>
+
+          <label>Jenis Material</label>
+          <input type="text" id="material">
+
+          <label>Ukuran</label>
+          <input type="text" id="ukuran">
+
+          <label>Welder ID</label>
+          <input type="text" id="welder">
+
+          <label>Tanggal Pekerjaan</label>
+          <input type="date" id="tanggalPekerjaan">
+
+          <label>Shift</label>
+          <select id="shift">
+            <option>Pagi</option>
+            <option>Malam</option>
+          </select>
+        </div>
+
+        <!-- Kolom kanan -->
+        <div>
+          <fieldset class="field-card">
+            <legend>Kategori</legend>
+            <label><input type="radio" name="kategori" value="fitup" checked> Fitup</label><br>
+            <label><input type="radio" name="kategori" value="visual"> Visual</label><br>
+            <label><input type="radio" name="kategori" value="ndt"> NDT</label>
+          </fieldset>
+
+        <div id="ndtTypeWrapper" style="display:none; margin-top:12px;">
+          <fieldset class="field-card">
+            <legend>Jenis NDT</legend>
+            <label><input type="radio" name="ndtType" value="RT"> RT</label><br>
+            <label><input type="radio" name="ndtType" value="UT"> UT</label><br>
+            <label><input type="radio" name="ndtType" value="PT"> PT</label><br>
+            <label><input type="radio" name="ndtType" value="MT"> MT</label>
+          </fieldset>
+        </div>
+
+          <label>Status</label>
+          <select id="status">
+            <option class="badge status-ok">OK</option>
+            <option class="badge status-repair">Repair</option>
+            <option class="badge status-hold">Hold</option>
+          </select>
+
+          <label>Catatan</label>
+          <textarea id="catatan"></textarea>
+
+          <label>Foto (boleh lebih dari 1)</label>
+          <input type="file" id="fotoFiles" accept="image/*" multiple>
+        </div>
+      </form>
+      <div style="margin-top:20px; text-align:center;">
+        <button class="btn" type="submit" form="formInputData">💾 Simpan Data</button>
+      </div>
+    </section>
+  </div>
+</main>
+
+  
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="script-supabase.js"></script>
+<script src="auth.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  // 1) Init form & project
+  attachInputForm();                           // cukup sekali
+  
+
+  const projectSel = el("projectName");
+  const drawingSel = el("drawingNumber");
+
+  // 2) Render field Joint sesuai kategori default + toggle welder & NDT type
+  const initialKategori = document.querySelector('input[name="kategori"]:checked')?.value || "fitup";
+  renderJointField(initialKategori);
+  toggleWelderByKategori?.(initialKategori);
+  toggleNdtTypeByKategori?.(initialKategori);  // tampilkan "Jenis NDT" kalau ndt
+
+  // 3) (DIHAPUS, gak perlu manual load lagi — biar event 'change' yang jalan)
+   window.fireChange ||= function(el){
+    if (!el) return;
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+  };
+
+  // 4) Ubah kategori → render field, toggle, dan reload drawing sesuai sumber
+  document.querySelectorAll('input[name="kategori"]').forEach(r => {
+    r.addEventListener("change", () => {
+      const k = document.querySelector('input[name="kategori"]:checked')?.value;
+      renderJointField(k);
+      toggleWelderByKategori?.(k);
+      toggleNdtTypeByKategori?.(k);
+
+      const pid = projectSel?.value;
+      if (!pid) return;
+      if (k === "visual")      loadDrawingsFromFitup(pid, "drawingNumber");
+      else if (k === "ndt")    loadDrawingsFromVisual(pid, "drawingNumber");
+      else                     loadDrawingsByProject(pid, "drawingNumber");
+    });
+  });
+
+  // 5) Ubah project → reload drawing sesuai kategori aktif
+  projectSel?.addEventListener("change", () => {
+    const pid = projectSel.value;
+    const k = document.querySelector('input[name="kategori"]:checked')?.value || "fitup";
+    if (!pid) return;
+
+    if (k === "visual")      loadDrawingsFromFitup(pid, "drawingNumber");
+    else if (k === "ndt")    loadDrawingsFromVisual(pid, "drawingNumber");
+    else                     loadDrawingsByProject(pid, "drawingNumber");
+  });
+
+  // 6) Ubah drawing → muat JOINTS (visual pakai FITUP, ndt pakai VISUAL)
+  drawingSel?.addEventListener("change", () => {
+    const k = document.querySelector('input[name="kategori"]:checked')?.value;
+    const pid = projectSel?.value;
+    const did = drawingSel?.value;
+    if (!pid || !did) return;
+
+    if (k === "visual")      loadJointsFromFitup(pid, did, "jointNumber");
+    else if (k === "ndt")    loadJointsFromVisual(pid, did, "jointNumber");
+  });
+
+  // 7) Ubah joint → AUTOFILL (visual dari Fitup, ndt dari Visual)
+  document.addEventListener("change", (e) => {
+    if (e.target && e.target.id === "jointNumber") {
+      const k = document.querySelector('input[name="kategori"]:checked')?.value;
+      const id = e.target.value;
+      if (!id) return;
+
+      if (k === "visual")     autofillFromFitup(id);
+      else if (k === "ndt")   autofillFromVisual(id);
+    }
+  });
+  await loadProjects("projectName");
+});
+</script>
+
+</body>
+</html>

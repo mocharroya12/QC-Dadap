@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>User Stats — QC Dadap</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('show')">☰ Menu</button>
+  <aside class="sidebar">
+    <div class="logo">QC Dadap</div>
+    <nav>
+      <a href="index.html">🏠 Home</a>
+      <a href="fitup.html">🔧 Fitup</a>
+      <a href="visual-welding.html">🛠️ Visual Welding</a>
+      <a href="ndt.html">📡 NDT</a>
+      <a href="input-data.html">📊 Input Data</a>
+      <a href="projects.html">📁 Projects</a>
+      <a href="drawing.html">📐 Drawing</a>
+      <a href="account.html">⚙️ Akun</a>
+      <a class="active" href="user-stats.html">👥 Status User</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="container">
+      <section class="card">
+        <h1>👥 User Stats</h1>
+        <div id="stats" class="grid"></div>
+        <canvas id="providerChart" style="max-width:600px;margin-top:16px"></canvas>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="script-supabase.js"></script>
+  <script src="auth.js"></script>
+  <script>
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Pastikan hanya admin yang bisa lihat (cek role dari profiles)
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return;
+    const { data: me } = await sb.from("profiles").select("role").eq("id", user.id).single();
+    if (me?.role !== "admin") {
+      document.getElementById("stats").innerHTML = "<p class='muted'>Khusus admin.</p>";
+      return;
+    }
+
+    // Ambil statistik via RPC
+    const { data, error } = await sb.rpc("get_user_stats");
+    if (error) {
+      console.error(error);
+      alert("Gagal ambil statistik: " + error.message);
+      return;
+    }
+
+    const s = data || {};
+    const box = (title, val) => `<div class="stat">
+      <div class="stat-title">${title}</div>
+      <div class="stat-value">${val}</div>
+    </div>`;
+
+    document.getElementById("stats").innerHTML = [
+      box("Total Users", s.total_users ?? 0),
+      box("Signups 7 Hari", s.signups_7d ?? 0),
+      box("Aktif 7 Hari", s.active_7d ?? 0),
+    ].join("");
+
+    // Chart provider
+    const ctx = document.getElementById("providerChart").getContext("2d");
+    const labels = Object.keys(s.by_provider || {});
+    const values = Object.values(s.by_provider || {});
+    new Chart(ctx, {
+      type: "doughnut",
+      data: { labels, datasets: [{ data: values }] },
+      options: { plugins: { legend: { position: "bottom" } } }
+    });
+  });
+  </script>
+</body>
+</html>
