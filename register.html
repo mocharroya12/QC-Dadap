@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register — QC Dadap</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('show')">☰ Menu</button>
+  <aside class="sidebar">
+    <div class="logo">QC Dadap</div>
+    <nav>
+      <a href="index.html">🏠 Home</a>
+      <a href="fitup.html">🔧 Fitup</a>
+      <a href="visual-welding.html">🛠️ Visual Welding</a>
+      <a href="ndt.html">📡 Non Destructive Test</a>
+      <a href="input-data.html">📊 Input Data</a>
+      <a href="projects.html">📁 Projects</a>
+      <a href="drawing.html">📐 Drawing</a>
+      <a href="account.html">⚙️ Akun</a>
+      <a href="user-stats.html">👥 Status User</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="container">
+      <section class="card" style="max-width:520px;margin:auto">
+        <h1>📝 Daftar</h1>
+        <p class="muted">Buat akun baru untuk mengakses sistem.</p>
+
+        <form id="registerForm" class="form-grid">
+          <div style="grid-column:1 / -1">
+            <label>Nama Lengkap (opsional)</label>
+            <input type="text" id="fullName" placeholder="Nama Anda">
+          </div>
+          <div style="grid-column:1 / -1">
+            <label>Email</label>
+            <input type="email" id="email" autocomplete="username" placeholder="nama@perusahaan.com" required>
+          </div>
+          <div style="grid-column:1 / -1">
+            <label>Kata Sandi</label>
+            <input type="password" id="password" autocomplete="new-password" placeholder="Minimal 6 karakter" required>
+          </div>
+          <div style="grid-column:1 / -1;display:flex;gap:10px;align-items:center">
+            <button class="btn" type="submit">Daftar</button>
+            <a class="btn" href="login.html">Sudah punya akun? Login</a>
+          </div>
+          <div id="msg" class="small muted mt-2"></div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="script-supabase.js"></script>
+  <script src="auth.js"></script>
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const msg = document.getElementById("msg");
+    document.getElementById("registerForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msg.textContent = "Memproses...";
+      try{
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        const fullName = document.getElementById("fullName").value.trim() || null;
+
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: fullName } }
+        });
+        if (error) throw error;
+
+        // Jika email confirmation aktif, session akan null → minta cek email.
+        const session = data.session;
+        if (!session) {
+          msg.textContent = "Pendaftaran berhasil. Silakan cek email untuk verifikasi.";
+          alert("Pendaftaran berhasil. Cek email untuk verifikasi, lalu login.");
+          location.href = "login.html";
+          return;
+        }
+
+        // Jika verifikasi dimatikan → langsung login.
+        const params = new URLSearchParams(location.search);
+        const target = params.get("redirect") || "index.html";
+        location.href = target;
+      } catch(err){
+        console.error(err);
+        msg.textContent = (err?.message || "Pendaftaran gagal");
+        alert("Pendaftaran gagal: " + (err?.message || ""));
+      }
+    });
+  });
+  </script>
+</body>
+</html>

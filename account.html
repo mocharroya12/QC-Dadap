@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pengaturan Akun — QC Dadap</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('show')">☰ Menu</button>
+  <aside class="sidebar">
+    <div class="logo">QC Dadap</div>
+    <nav>
+      <a href="index.html">🏠 Home</a>
+      <a href="fitup.html">🔧 Fitup</a>
+      <a href="visual-welding.html">🛠️ Visual Welding</a>
+      <a href="ndt.html">📡 NDT</a>
+      <a href="input-data.html">📊 Input Data</a>
+      <a href="projects.html">📁 Projects</a>
+      <a href="drawing.html">📐 Drawing</a>
+      <a class="active" href="account.html">⚙️ Akun</a>
+      <a href="user-stats.html">👥 Status User</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="container">
+      <section class="card">
+        <h1>Pengaturan Akun</h1>
+        <p class="muted" id="who">Memuat...</p>
+
+        <h3>Ubah Password</h3>
+        <form id="changePwdForm" class="form-grid" placeholder="Masukkan Password">
+          <label>Password sekarang</label>
+          <input type="password" id="currPwd" placeholder="Masukkan Password baru" required />
+          <label>Password baru</label>
+          <input type="password" id="newPwd" placeholder="Masukkan Password Baru" minlength="6" required />
+          <label>Ulangi password baru</label>
+          <input type="password" id="newPwd2" placeholder="Ulangi Password Baru" minlength="6" required />
+          <button class="btn" type="submit">Simpan Password</button>
+        </form>
+
+        <hr />
+
+        <h3>Lupa Password?</h3>
+        <p>Kirim link reset ke email kamu.</p>
+        <form id="forgotForm" class="form">
+          <input type="email" id="forgotEmail" placeholder="email@contoh.com" required />
+          <button class="btn btn-outline" type="submit">Kirim Link Reset</button>
+        </form>
+
+        <p class="muted" id="msg" style="margin-top:12px"></p>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="script-supabase.js"></script>
+  <script src="auth.js"></script>
+  <script>
+  (async function () {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) return; // guard di auth.js akan redirect kalau belum login
+    document.getElementById('who').textContent = `Login sebagai: ${user.email}`;
+
+    // Ubah password (verifikasi password sekarang dulu)
+    document.getElementById('changePwdForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const curr = document.getElementById('currPwd').value.trim();
+      const np1  = document.getElementById('newPwd').value.trim();
+      const np2  = document.getElementById('newPwd2').value.trim();
+      const msg  = document.getElementById('msg');
+      msg.textContent = '';
+
+      if (np1 !== np2) {
+        msg.textContent = 'Password baru dan ulangannya tidak sama.';
+        return;
+      }
+
+      const re = await sb.auth.signInWithPassword({ email: user.email, password: curr });
+      if (re.error) {
+        msg.textContent = 'Password sekarang salah.';
+        return;
+      }
+
+      const upd = await sb.auth.updateUser({ password: np1 });
+      msg.textContent = upd.error ? ('Gagal ubah password: ' + upd.error.message) : 'Password berhasil diubah.';
+      if (!upd.error) {
+        document.getElementById('currPwd').value = '';
+        document.getElementById('newPwd').value = '';
+        document.getElementById('newPwd2').value = '';
+      }
+    });
+
+    // Kirim email reset (lupa password)
+    document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('forgotEmail').value.trim();
+      const msg   = document.getElementById('msg');
+      msg.textContent = '';
+
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: location.origin + '/update-password.html'
+      });
+      msg.textContent = error ? ('Gagal kirim link reset: ' + error.message) : 'Link reset dikirim. Cek email kamu.';
+    });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Visual Welding — QC Dadap</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body >
+  <button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('show')">☰ Menu</button>
+
+  <aside class="sidebar">
+    <div class="logo">QC Dadap</div>
+    <nav>
+      <a href="index.html">🏠 Home</a>
+      <a href="fitup.html">🔧 Fitup</a>
+      <a class="active" href="visual-welding.html">🛠️ Visual Welding</a>
+      <a href="ndt.html">📡 Non Destructive Test</a>
+      <a href="input-data.html">📊 Input Data</a>
+      <a href="projects.html">📁 Projects</a>
+      <a href="drawing.html">📐 Drawing</a>
+      <a href="account.html">⚙️ Akun</a>
+      <a href="user-stats.html">👥 Status User</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="container">
+      <section class="card">
+        <h1>🛠️ Visual Welding</h1>
+        <label>Pilih Project</label>
+        <select id="projectInput"></select>
+        <div class="filter-row" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0">
+          <div>
+            <label>Filter Drawing</label>
+            <select id="drawingFilter">
+              <option value="">Semua Drawing</option>
+            </select>
+          </div>
+          <div>
+            <label>Filter Material</label>
+            <select id="materialFilter">
+              <option value="">Semua Material</option>
+            </select>
+          </div>
+        </div>
+        <br>
+        <div class="card">
+          <button id="resetFilterBtn">Reset Filter</button>
+        </div>
+        <br>
+        <div id="dataContainer"></div>
+        <button id="bulkDeleteBtn" class="btn-danger" style="margin-top:8px">Hapus Semua (sesuai filter)</button>
+      </section>
+    </div>
+  </main>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="script-supabase.js"></script>
+  <script src="auth.js"></script>
+  <script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const kategori = "visual"; // ganti: "visual" / "ndt" di halaman lain
+  const proj = document.getElementById("projectInput");
+  const draw = document.getElementById("drawingFilter");
+  const mat  = document.getElementById("materialFilter");
+
+  proj.addEventListener("change", async (e) => {
+    const pid = e.target.value;
+    const lastDraw = draw?.value || "";
+    const lastMat  = mat?.value  || "";
+    await loadFiltersByKategori(kategori, pid);
+    const keep = (sel,val)=>{ if(sel && val && [...sel.options].some(o=>o.value===val)) sel.value=val; };
+    keep(draw,lastDraw); keep(mat,lastMat);
+    tampilkanData(kategori, pid);
+  });
+
+  const resetBtn = document.getElementById("resetFilterBtn");
+  if (resetBtn) resetBtn.addEventListener("click", () => {
+    if (draw) draw.value = "";
+    if (mat)  mat.value  = "";
+    if (proj?.value) tampilkanData(kategori, proj.value);
+  });
+
+  const bulkBtn = document.getElementById("bulkDeleteBtn");
+  if (bulkBtn) bulkBtn.addEventListener("click", () => bulkDeleteFiltered(kategori));
+
+  await loadProjects("projectInput"); // ini yang mengisi dropdown project + auto-trigger change
+});
+</script>
+
+</body>
+</html>
