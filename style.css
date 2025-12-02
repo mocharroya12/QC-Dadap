@@ -387,7 +387,7 @@ footer{ color:var(--muted); font-size:13px; margin-top:18px; }
 /* Optional: light override (if someday needed) */
 @media (prefers-color-scheme: light){
   :root{
-    --bg: #f7f7fb;
+    --bg: #F8F8FF;
     --surface:#ffffff;
     --elevated:#f5f7fb;
     --text:#0d1218;
